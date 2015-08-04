@@ -98,6 +98,21 @@ func GetSearch(query string, page int, perPage int) (*SearchResponse, error) {
 	return &response, nil
 }
 
+// GetSearchForSource returns search results restricted to a source
+func GetSearchForSource(query string, page int, perPage int, sourceCode string) (*SearchResponse, error) {
+	raw, err := GetSearchRawForSource(query, "json", page, perPage, sourceCode)
+	var response SearchResponse
+	if err != nil {
+		return &response, err
+	}
+
+	err = json.Unmarshal(raw, &response)
+	if err != nil {
+		return &response, marshallerError(raw, err)
+	}
+	return &response, nil
+}
+
 // GetSymbolRaw returns CSV, JSON or XML data for a given symbol
 func GetSymbolRaw(symbol string, format string, params Options) ([]byte, error) {
 	url := getUrl("symbol", symbol, format, arrangeParams(params))
@@ -129,6 +144,24 @@ func GetSearchRaw(query string, format string, page int, perPage int) ([]byte, e
 	params.Set("query", query)
 	params.Set("per_page", strconv.Itoa(perPage))
 	params.Set("page", strconv.Itoa(page))
+
+	url := getUrl("search", format, arrangeParams(params))
+	return getData(url)
+}
+
+// GetSearchRawForSource returns search results restricted to a source as JSON or XML
+func GetSearchRawForSource(query string, format string, page int, perPage int, sourceCode string) ([]byte, error) {
+	params := Options{}
+
+	// TODO: Remove when Quandl fixes this bug
+	if format == "csv" {
+		format = "json"
+	}
+
+	params.Set("query", query)
+	params.Set("per_page", strconv.Itoa(perPage))
+	params.Set("page", strconv.Itoa(page))
+	params.Set("source_code", sourceCode)
 
 	url := getUrl("search", format, arrangeParams(params))
 	return getData(url)
